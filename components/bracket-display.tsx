@@ -1,9 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
+import { Trophy } from "lucide-react"
 
 interface Team {
   id: string
@@ -63,6 +63,11 @@ export function BracketDisplay({ bracketData, teamsData }: BracketDisplayProps) 
     return "Oitavas"
   }
 
+  // Get team abbreviation (first 2 letters)
+  const getTeamAbbr = (teamName: string) => {
+    return teamName.substring(0, 2).toUpperCase()
+  }
+
   // Handle winner selection
   const handleSelectWinner = async (match: BracketMatch, winnerId: string) => {
     if (isUpdating || match.winner_id === winnerId) return
@@ -111,110 +116,198 @@ export function BracketDisplay({ bracketData, teamsData }: BracketDisplayProps) 
     }
   }
 
+  // Split matches into left and right sides
+  const getLeftSideMatches = (round: number) => {
+    return roundsMap[round].filter((match) => match.position % 2 === 1).sort((a, b) => a.position - b.position)
+  }
+
+  const getRightSideMatches = (round: number) => {
+    return roundsMap[round].filter((match) => match.position % 2 === 0).sort((a, b) => a.position - b.position)
+  }
+
+  // Calculate total number of rounds
+  const totalRounds = rounds.length
+
   return (
-    <div className="flex flex-nowrap overflow-x-auto pb-6">
-      {rounds.map((round) => {
-        const roundMatches = roundsMap[round]
-        return (
-          <div key={round} className="flex-shrink-0 w-64 mx-2">
-            <h3 className="text-center text-white font-semibold mb-4 bg-white/10 py-2 rounded">
-              {getRoundName(round, rounds.length)}
-            </h3>
-            <div className="flex flex-col gap-6">
-              {roundMatches.map((match) => {
-                const teamA = getTeam(match.team_a_id)
-                const teamB = getTeam(match.team_b_id)
-                const hasWinner = !!match.winner_id
+    <div className="relative">
+      {/* Trophy in the middle */}
+      <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 opacity-30">
+        <Trophy className="w-24 h-24 text-yellow-400" />
+      </div>
 
-                return (
-                  <div
-                    key={match.id}
-                    className="bg-gray-800/60 backdrop-blur-sm border border-white/10 rounded-lg overflow-hidden"
-                  >
-                    <div
-                      className={`p-3 border-b border-white/10 flex items-center gap-2 ${
-                        hasWinner && match.winner_id === match.team_a_id ? "bg-green-900/20" : ""
-                      }`}
-                    >
-                      {teamA ? (
-                        <>
-                          <div className="w-8 h-8 relative flex-shrink-0 bg-gray-700 rounded-full overflow-hidden">
-                            {teamA.logo_url ? (
-                              <Image
-                                src={teamA.logo_url || "/placeholder.svg"}
-                                alt={teamA.name}
-                                fill
-                                className="object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-xs">
-                                {teamA.name.substring(0, 2).toUpperCase()}
+      <div className="flex justify-between">
+        {/* Left side of bracket */}
+        <div className="flex-1 flex flex-row">
+          {rounds.slice(0, totalRounds).map((round, roundIndex) => (
+            <div key={`left-${round}`} className="flex-1 flex flex-col">
+              <div className="h-12 flex items-center justify-center mb-4">
+                <h3 className="text-center text-white font-semibold bg-white/10 py-2 px-4 rounded w-full">
+                  {getRoundName(round, totalRounds)}
+                </h3>
+              </div>
+              <div className="flex flex-col gap-6">
+                {getLeftSideMatches(round).map((match) => {
+                  const teamA = getTeam(match.team_a_id)
+                  const teamB = getTeam(match.team_b_id)
+                  const hasWinner = !!match.winner_id
+
+                  return (
+                    <div key={match.id} className="relative">
+                      <div className="bg-gray-800/60 backdrop-blur-sm border border-indigo-900/50 rounded-lg overflow-hidden">
+                        <div
+                          className={`p-3 border-b border-indigo-900/50 flex items-center gap-2 ${
+                            hasWinner && match.winner_id === match.team_a_id ? "bg-indigo-900/30" : ""
+                          }`}
+                        >
+                          {teamA ? (
+                            <>
+                              <div className="w-8 h-8 relative flex-shrink-0 bg-indigo-900/70 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold">
+                                {getTeamAbbr(teamA.name)}
                               </div>
-                            )}
-                          </div>
-                          <span className="text-sm truncate flex-1">{teamA.name}</span>
-                          {!hasWinner && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-6 px-2 text-xs"
-                              onClick={() => handleSelectWinner(match, teamA.id)}
-                              disabled={isUpdating}
-                            >
-                              Vencedor
-                            </Button>
+                              <span className="text-sm truncate flex-1">{teamA.name}</span>
+                              {!hasWinner && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 px-2 text-xs"
+                                  onClick={() => handleSelectWinner(match, teamA.id)}
+                                  disabled={isUpdating}
+                                >
+                                  Vencedor
+                                </Button>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-sm text-gray-400 italic">Aguardando...</span>
                           )}
-                        </>
-                      ) : (
-                        <span className="text-sm text-gray-400 italic">Aguardando...</span>
+                        </div>
+
+                        <div
+                          className={`p-3 flex items-center gap-2 ${
+                            hasWinner && match.winner_id === match.team_b_id ? "bg-indigo-900/30" : ""
+                          }`}
+                        >
+                          {teamB ? (
+                            <>
+                              <div className="w-8 h-8 relative flex-shrink-0 bg-indigo-900/70 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold">
+                                {getTeamAbbr(teamB.name)}
+                              </div>
+                              <span className="text-sm truncate flex-1">{teamB.name}</span>
+                              {!hasWinner && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 px-2 text-xs"
+                                  onClick={() => handleSelectWinner(match, teamB.id)}
+                                  disabled={isUpdating}
+                                >
+                                  Vencedor
+                                </Button>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-sm text-gray-400 italic">Aguardando...</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Connector lines */}
+                      {round < totalRounds && (
+                        <div className="absolute right-0 top-1/2 w-4 h-px bg-indigo-500/50"></div>
                       )}
                     </div>
-
-                    <div
-                      className={`p-3 flex items-center gap-2 ${
-                        hasWinner && match.winner_id === match.team_b_id ? "bg-green-900/20" : ""
-                      }`}
-                    >
-                      {teamB ? (
-                        <>
-                          <div className="w-8 h-8 relative flex-shrink-0 bg-gray-700 rounded-full overflow-hidden">
-                            {teamB.logo_url ? (
-                              <Image
-                                src={teamB.logo_url || "/placeholder.svg"}
-                                alt={teamB.name}
-                                fill
-                                className="object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-xs">
-                                {teamB.name.substring(0, 2).toUpperCase()}
-                              </div>
-                            )}
-                          </div>
-                          <span className="text-sm truncate flex-1">{teamB.name}</span>
-                          {!hasWinner && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-6 px-2 text-xs"
-                              onClick={() => handleSelectWinner(match, teamB.id)}
-                              disabled={isUpdating}
-                            >
-                              Vencedor
-                            </Button>
-                          )}
-                        </>
-                      ) : (
-                        <span className="text-sm text-gray-400 italic">Aguardando...</span>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
             </div>
-          </div>
-        )
-      })}
+          ))}
+        </div>
+
+        {/* Right side of bracket */}
+        <div className="flex-1 flex flex-row-reverse">
+          {rounds.slice(0, totalRounds).map((round, roundIndex) => (
+            <div key={`right-${round}`} className="flex-1 flex flex-col">
+              <div className="h-12 flex items-center justify-center mb-4">
+                <h3 className="text-center text-white font-semibold bg-white/10 py-2 px-4 rounded w-full">
+                  {getRoundName(round, totalRounds)}
+                </h3>
+              </div>
+              <div className="flex flex-col gap-6">
+                {getRightSideMatches(round).map((match) => {
+                  const teamA = getTeam(match.team_a_id)
+                  const teamB = getTeam(match.team_b_id)
+                  const hasWinner = !!match.winner_id
+
+                  return (
+                    <div key={match.id} className="relative">
+                      <div className="bg-gray-800/60 backdrop-blur-sm border border-indigo-900/50 rounded-lg overflow-hidden">
+                        <div
+                          className={`p-3 border-b border-indigo-900/50 flex items-center gap-2 ${
+                            hasWinner && match.winner_id === match.team_a_id ? "bg-indigo-900/30" : ""
+                          }`}
+                        >
+                          {teamA ? (
+                            <>
+                              <div className="w-8 h-8 relative flex-shrink-0 bg-indigo-900/70 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold">
+                                {getTeamAbbr(teamA.name)}
+                              </div>
+                              <span className="text-sm truncate flex-1">{teamA.name}</span>
+                              {!hasWinner && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 px-2 text-xs"
+                                  onClick={() => handleSelectWinner(match, teamA.id)}
+                                  disabled={isUpdating}
+                                >
+                                  Vencedor
+                                </Button>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-sm text-gray-400 italic">Aguardando...</span>
+                          )}
+                        </div>
+
+                        <div
+                          className={`p-3 flex items-center gap-2 ${
+                            hasWinner && match.winner_id === match.team_b_id ? "bg-indigo-900/30" : ""
+                          }`}
+                        >
+                          {teamB ? (
+                            <>
+                              <div className="w-8 h-8 relative flex-shrink-0 bg-indigo-900/70 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold">
+                                {getTeamAbbr(teamB.name)}
+                              </div>
+                              <span className="text-sm truncate flex-1">{teamB.name}</span>
+                              {!hasWinner && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 px-2 text-xs"
+                                  onClick={() => handleSelectWinner(match, teamB.id)}
+                                  disabled={isUpdating}
+                                >
+                                  Vencedor
+                                </Button>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-sm text-gray-400 italic">Aguardando...</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Connector lines */}
+                      {round < totalRounds && <div className="absolute left-0 top-1/2 w-4 h-px bg-indigo-500/50"></div>}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }

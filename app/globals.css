@@ -53,3 +53,17 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
+
+/* Bracket connector lines */
+.bracket-connector {
+  position: absolute;
+  background-color: rgba(236, 72, 153, 0.5); /* pink-500 with opacity */
+}
+
+.bracket-connector-horizontal {
+  height: 2px;
+}
+
+.bracket-connector-vertical {
+  width: 2px;
+}

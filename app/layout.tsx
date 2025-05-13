@@ -21,7 +21,7 @@ export default function RootLayout({
     <html lang="pt-BR" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-          <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
+          <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-purple-950 to-indigo-950">
             <div className="container mx-auto px-4 py-8">{children}</div>
           </div>
         </ThemeProvider>

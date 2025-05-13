@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { BracketDisplay } from "@/components/bracket-display"
+import { FlexibleBracket } from "@/components/flexible-bracket"
 import { ExportButton } from "@/components/export-button"
 
 interface BracketPageProps {
@@ -44,29 +44,39 @@ export default async function BracketPage({ params }: BracketPageProps) {
 
   const supabase = createClient()
 
-  // Fetch bracket data from Supabase
-  const { data: bracketData, error } = await supabase
-    .from("brackets")
-    .select("*")
-    .eq("division", division)
-    .eq("modality", modality)
-    .eq("gender", gender)
-    .order("round", { ascending: true })
-    .order("position", { ascending: true })
-
-  if (error) {
-    console.error("Error fetching bracket data:", error)
-  }
-
   // Fetch teams data
-  const { data: teamsData, error: teamsError } = await supabase.from("teams").select("*").eq("division", division)
+  const { data: teamsData, error: teamsError } = await supabase.from("teams").select("*")
 
   if (teamsError) {
     console.error("Error fetching teams data:", teamsError)
   }
 
-  // If no data is found, we'll show a placeholder
-  const hasData = bracketData && bracketData.length > 0
+  // Inicializa posições vazias (caso a tabela não exista)
+  let initialPositions: any[] = []
+
+  try {
+    // Tenta buscar posições existentes do chaveamento
+    const { data: bracketPositions, error: bracketError } = await supabase
+      .from("flexible_brackets")
+      .select("*")
+      .eq("division_id", division)
+      .eq("modality_id", modality)
+      .eq("gender", gender)
+
+    if (!bracketError && bracketPositions) {
+      // Transform data for the FlexibleBracket component
+      initialPositions = bracketPositions.map((pos) => ({
+        id: pos.id,
+        round: pos.round,
+        position: pos.position,
+        teamId: pos.team_id,
+        label: pos.label,
+      }))
+    }
+  } catch (error) {
+    console.log("Tabela flexible_brackets ainda não existe. Usando posições padrão.")
+    // Continua com initialPositions vazio, o componente FlexibleBracket criará posições padrão
+  }
 
   return (
     <main className="flex flex-col items-center justify-start min-h-[calc(100vh-4rem)] py-8">
@@ -78,7 +88,7 @@ export default async function BracketPage({ params }: BracketPageProps) {
           {divisionInfo.emoji} {divisionInfo.name} - {modalityInfo.emoji} {modalityInfo.name} (
           {gender === "masculino" ? "Masculino" : "Feminino"})
         </h1>
-        <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-6">Chaveamento do torneio</p>
+        <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-6">CHAVEAMENTO CIA 10 ANOS</p>
 
         <div className="flex justify-center mb-6">
           <ExportButton elementId="bracket-container" filename={`chaveamento-${division}-${modality}-${gender}`} />
@@ -87,24 +97,15 @@ export default async function BracketPage({ params }: BracketPageProps) {
 
       <div
         id="bracket-container"
-        className="w-full max-w-7xl mx-auto bg-gray-900/60 backdrop-blur-md p-6 rounded-xl border border-white/10"
+        className="w-full max-w-7xl mx-auto bg-gradient-to-br from-indigo-900/80 via-purple-900/80 to-indigo-900/80 backdrop-blur-md p-6 rounded-xl border border-indigo-500/20"
       >
-        {hasData ? (
-          <BracketDisplay bracketData={bracketData} teamsData={teamsData || []} />
-        ) : (
-          <div className="text-center py-16">
-            <h3 className="text-xl text-gray-300 mb-4">Chaveamento ainda não disponível</h3>
-            <p className="text-gray-400">
-              O chaveamento para esta modalidade ainda não foi gerado ou não há times suficientes.
-            </p>
-            <Link
-              href="/admin"
-              className="mt-6 inline-block px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white font-medium transition-all duration-300"
-            >
-              Ir para o Painel de Administração
-            </Link>
-          </div>
-        )}
+        <FlexibleBracket
+          divisionId={division}
+          modalityId={modality}
+          gender={gender}
+          teams={teamsData || []}
+          initialPositions={initialPositions}
+        />
       </div>
     </main>
   )

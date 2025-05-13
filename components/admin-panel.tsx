@@ -188,7 +188,14 @@ export function AdminPanel({ initialDivisions, initialModalities, initialTeams }
       const firstRoundMatches = Math.pow(2, rounds - 1)
       const byes = Math.pow(2, rounds) - teamCount
 
-      // Create matches array
+      // Calcule o número de times em cada lado do chaveamento
+      const teamsPerSide = Math.pow(2, rounds - 1)
+
+      // Reorganize os times para que fiquem distribuídos corretamente nos dois lados
+      const leftSideTeams = shuffledTeams.slice(0, teamsPerSide)
+      const rightSideTeams = shuffledTeams.slice(teamsPerSide)
+
+      // Crie matches array
       const matches = []
 
       // Generate bracket ID
@@ -205,6 +212,8 @@ export function AdminPanel({ initialDivisions, initialModalities, initialTeams }
       // Create matches for all rounds
       for (let round = 1; round <= rounds; round++) {
         const matchesInRound = Math.pow(2, rounds - round)
+        let teamAId = null
+        let teamBId = null
 
         for (let position = 1; position <= matchesInRound; position++) {
           const matchId = `${bracketId}-r${round}-p${position}`
@@ -217,21 +226,27 @@ export function AdminPanel({ initialDivisions, initialModalities, initialTeams }
             nextMatchId = `${bracketId}-r${nextRound}-p${nextPosition}`
           }
 
-          // For first round, assign teams
-          let teamAId = null
-          let teamBId = null
-
+          // Para o primeiro round, atribua times de forma que os lados esquerdo e direito fiquem balanceados
           if (round === 1) {
-            const teamIndex = (position - 1) * 2
-
-            // Assign team A if available
-            if (teamIndex < shuffledTeams.length) {
-              teamAId = shuffledTeams[teamIndex].id
+            // Para o lado esquerdo (posições ímpares)
+            if (position % 2 === 1) {
+              const teamIndex = Math.floor((position - 1) / 2)
+              if (teamIndex < leftSideTeams.length) {
+                teamAId = leftSideTeams[teamIndex].id
+                if (teamIndex + 1 < leftSideTeams.length) {
+                  teamBId = leftSideTeams[teamIndex + 1].id
+                }
+              }
             }
-
-            // Assign team B if available
-            if (teamIndex + 1 < shuffledTeams.length) {
-              teamBId = shuffledTeams[teamIndex + 1].id
+            // Para o lado direito (posições pares)
+            else {
+              const teamIndex = Math.floor((position - 2) / 2)
+              if (teamIndex < rightSideTeams.length) {
+                teamAId = rightSideTeams[teamIndex].id
+                if (teamIndex + 1 < rightSideTeams.length) {
+                  teamBId = rightSideTeams[teamIndex + 1].id
+                }
+              }
             }
           }
 
